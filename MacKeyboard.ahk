@@ -54,6 +54,23 @@ ToggleMedia(name, *) {
     A_TrayMenu.ToggleCheck(name)
 }
 
+; ===== Free up ⌘L =====
+; Windows locks the screen on Win+L before any script can catch it, so turn that
+; shortcut off while this script runs (⌃⌘Q still locks) and turn it back on when it exits.
+LOCK_POLICY := "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"
+SetWinLLock(on) {
+    try RegWrite on ? 0 : 1, "REG_DWORD", LOCK_POLICY, "DisableLockWorkstation"
+}
+SetWinLLock(false)
+OnExit (*) => SetWinLLock(true)
+
+LockScreen(*) {
+    SetWinLLock(true)
+    DllCall "LockWorkStation"
+    Sleep 1000
+    SetWinLLock(false)
+}
+
 ; ===== ⌘ + key  ->  Ctrl + key =====
 keys := StrSplit("abcdefghijklmnopqrstuvwxyz0123456789")
 for k in ["-", "=", "[", "]", "`;", "'", ",", ".", "/", "\"]
@@ -72,7 +89,7 @@ SendKey(mods, key, *) => Send(mods "{" key "}")
 #q::Send "!{F4}"                     ; ⌘Q  quit app
 #h::WinMinimize "A"                  ; ⌘H  hide
 #m::WinMinimize "A"                  ; ⌘M  minimize
-^#q::DllCall "LockWorkStation"       ; ⌃⌘Q lock screen
+^#q::LockScreen()                    ; ⌃⌘Q lock screen
 ^#f::Send "{F11}"                    ; ⌃⌘F full screen
 #Space::Send "^{Esc}"                ; ⌘Space  open Start menu
 #e::Run "explorer.exe"               ; ⌘E  open File Explorer

@@ -42,5 +42,5 @@ Brightness works on laptop screens, and on external monitors that support DDC/CI
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
-- ⌘L can't be remapped because Windows reserves Win+L for locking. Use Ctrl+L (or F6) for the address bar.
+- ⌘L works like Ctrl+L (address bar). To make that possible, Windows' own Win+L lock is turned off while the script runs — lock with ⌃⌘Q instead. Win+L comes back when you exit the script.
 - Some Windows shortcuts (like Win+D) now behave as ⌘ shortcuts instead.
