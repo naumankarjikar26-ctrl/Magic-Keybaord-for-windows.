@@ -6,8 +6,9 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 
 1. Install [AutoHotkey v2](https://www.autohotkey.com/).
 2. Download `MacKeyboard.ahk`, move it somewhere permanent (like Documents), and double-click it.
-   Choose **Yes** on the admin prompt (needed for ⌘L). A green **H** icon appears in the tray.
-3. That's it — it now starts automatically with Windows. To turn that off, right-click the tray icon → uncheck *Start with Windows*.
+   Choose **Yes** on the admin prompt. A green **H** icon appears in the tray.
+3. **Restart your PC once** when it asks — that's when ⌘ starts acting like a Mac's.
+4. That's it — it now starts automatically with Windows. To turn that off, right-click the tray icon → uncheck *Start with Windows*.
 
 ## Shortcuts
 
@@ -43,5 +44,6 @@ Brightness works on laptop screens, and on external monitors that support DDC/CI
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
-- ⌘L works like Ctrl+L (address bar). To make that possible, Windows' own Win+L lock is turned off while the script runs — lock with ⌃⌘Q instead. Win+L comes back when you exit the script.
-- Some Windows shortcuts (like Win+D) now behave as ⌘ shortcuts instead.
+- ⌘ is turned into Ctrl by Windows itself (a keyboard "Scancode Map"), so even ⌘L works. This stays on even if the script isn't running.
+- The Windows key is gone from the keyboard: use ⌘Space for Start. To get it back: tray icon → uncheck *⌘ works as Ctrl*, then restart.
+- This applies to every keyboard on the PC, including a laptop's built-in one.
