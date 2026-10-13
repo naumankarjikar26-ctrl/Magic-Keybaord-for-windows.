@@ -145,6 +145,8 @@ SetStartup(on, wait := false) {
 #+3::Send "{PrintScreen}"            ; ⌘⇧3 screenshot
 #+4::Send "#+s"                      ; ⌘⇧4 snip area
 #+5::Send "#+s"                      ; ⌘⇧5 snip tool
+~LWin::Send "{Blind}{vkE8}"          ; tapping ⌘ alone doesn't open Start (like a Mac)
+~RWin::Send "{Blind}{vkE8}"
 LWin & Tab::AltTab                   ; ⌘Tab switch apps
 RWin & Tab::AltTab
 
