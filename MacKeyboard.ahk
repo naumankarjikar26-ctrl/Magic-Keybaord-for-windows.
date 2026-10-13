@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "8"
+VERSION := "9"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -157,6 +157,11 @@ SetStartup(on, wait := false) {
 >^+3::Send "{PrintScreen}"           ; ⌘⇧3 screenshot
 >^+4::Send "#+s"                     ; ⌘⇧4 snip area
 >^+5::Send "#+s"                     ; ⌘⇧5 snip tool
+
+; Desktops, like Spaces on a Mac (the real Control key)
+<^Left::Send "^#{Left}"              ; ⌃←  previous desktop
+<^Right::Send "^#{Right}"            ; ⌃→  next desktop
+<^Up::Send "#{Tab}"                  ; ⌃↑  Task View (like Mission Control)
 
 ; ⌘Tab switch apps (hold ⌘, tap Tab; add ⇧ to go back)
 global AltTabbing := false
