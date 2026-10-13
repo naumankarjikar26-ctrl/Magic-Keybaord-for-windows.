@@ -16,7 +16,7 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 | ⌘ + any letter/number | Same as Ctrl + key (⌘C, ⌘V, ⌘Z, ⌘T, ⌘W, ⌘S, ...) |
 | ⌘⇧Z | Redo |
 | ⌘Q | Quit app |
-| ⌘H / ⌘M | Minimize (closest thing to Hide) |
+| ⌘M | Minimize |
 | ⌘Tab | Switch apps |
 | ⌘Space | Open Start menu |
 | ⌘E | Open File Explorer |

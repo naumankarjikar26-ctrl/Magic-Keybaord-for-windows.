@@ -40,7 +40,7 @@ global MAC_MEDIA_KEYS := true
 keys := StrSplit("abcdefghijklmnopqrstuvwxyz0123456789")
 for k in ["-", "=", "[", "]", "`;", "'", ",", ".", "/", "\"]
     keys.Push(k)
-skipPlain := Map("e", 1, "q", 1, "h", 1, "m", 1)   ; handled specially below
+skipPlain := Map("e", 1, "q", 1, "m", 1)   ; handled specially below
 skipShift := Map("z", 1, "3", 1, "4", 1, "5", 1)   ; handled specially below
 for k in keys {
     if !skipPlain.Has(k)
@@ -131,7 +131,6 @@ SetStartup(on, wait := false) {
 
 ; ===== Mac-style app & system shortcuts =====
 #q::Send "!{F4}"                     ; ⌘Q  quit app
-#h::WinMinimize "A"                  ; ⌘H  hide
 #m::WinMinimize "A"                  ; ⌘M  minimize
 ^#q::LockScreen()                    ; ⌃⌘Q lock screen
 ^#f::Send "{F11}"                    ; ⌃⌘F full screen
