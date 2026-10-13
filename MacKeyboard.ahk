@@ -12,8 +12,9 @@ InstallKeybdHook
 A_MenuMaskKey := "vkE8"  ; stops a lone Win/Alt release from opening Start or menus
 
 ; ===== Settings =====
-; true = top-row F7-F12 act as media keys like on a Mac (can also be toggled from the tray icon)
-global MAC_MEDIA_KEYS := false
+; true = top-row keys act like on a Mac: F1/F2 brightness, F7-F9 media, F10-F12 volume
+; (can also be toggled from the tray icon; turn off when you need real F-keys)
+global MAC_MEDIA_KEYS := true
 
 ; ===== App groups =====
 for exe in ["chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "vivaldi.exe", "arc.exe"]
@@ -24,9 +25,9 @@ GroupAdd "Explorer", "ahk_class ExploreWClass"
 ; ===== Tray =====
 A_IconTip := "Mac Keyboard for Windows"
 A_TrayMenu.Add()
-A_TrayMenu.Add("Mac media keys (F7-F12)", ToggleMedia)
+A_TrayMenu.Add("Mac top-row keys (brightness, media, volume)", ToggleMedia)
 if MAC_MEDIA_KEYS
-    A_TrayMenu.Check("Mac media keys (F7-F12)")
+    A_TrayMenu.Check("Mac top-row keys (brightness, media, volume)")
 
 ToggleMedia(name, *) {
     global MAC_MEDIA_KEYS := !MAC_MEDIA_KEYS
@@ -91,8 +92,10 @@ RWin & Tab::AltTab
 #HotIf WinActive("ahk_group Browsers")
 #+z::Send "^+z"                      ; ⌘⇧Z redo (Ctrl+Y opens history in browsers)
 
-; ===== Optional Mac media keys =====
+; ===== Mac top-row keys =====
 #HotIf MAC_MEDIA_KEYS
+F1::ChangeBrightness(-10)
+F2::ChangeBrightness(10)
 F7::Send "{Media_Prev}"
 F8::Send "{Media_Play_Pause}"
 F9::Send "{Media_Next}"
@@ -100,3 +103,44 @@ F10::Send "{Volume_Mute}"
 F11::Send "{Volume_Down}"
 F12::Send "{Volume_Up}"
 #HotIf
+
+; ===== Brightness =====
+ChangeBrightness(step) {
+    ; Laptop / built-in screens (WMI)
+    level := ""
+    try {
+        wmi := ComObjGet("winmgmts:\\.\root\WMI")
+        for m in wmi.ExecQuery("SELECT CurrentBrightness FROM WmiMonitorBrightness")
+            level := Max(0, Min(100, m.CurrentBrightness + step))
+        if level != "" {
+            for m in wmi.ExecQuery("SELECT * FROM WmiMonitorBrightnessMethods")
+                m.WmiSetBrightness(1, level)
+            return ShowLevel("Brightness", level)
+        }
+    }
+
+    ; External monitors (DDC/CI) - the monitor showing the active window
+    hMon := DllCall("MonitorFromWindow", "Ptr", WinExist("A"), "UInt", 1, "Ptr")
+    count := 0
+    if !DllCall("dxva2\GetNumberOfPhysicalMonitorsFromHMONITOR", "Ptr", hMon, "UInt*", &count) || !count
+        return ShowLevel("Brightness not supported on this display")
+    size := A_PtrSize + 256  ; PHYSICAL_MONITOR: HANDLE + WCHAR[128]
+    mons := Buffer(size * count, 0)
+    if !DllCall("dxva2\GetPhysicalMonitorsFromHMONITOR", "Ptr", hMon, "UInt", count, "Ptr", mons)
+        return ShowLevel("Brightness not supported on this display")
+    loop count {
+        h := NumGet(mons, (A_Index - 1) * size, "Ptr")
+        lo := 0, cur := 0, hi := 0
+        if DllCall("dxva2\GetMonitorBrightness", "Ptr", h, "UInt*", &lo, "UInt*", &cur, "UInt*", &hi) {
+            level := Max(lo, Min(hi, cur + Round(step * (hi - lo) / 100)))
+            DllCall("dxva2\SetMonitorBrightness", "Ptr", h, "UInt", level)
+        }
+    }
+    DllCall("dxva2\DestroyPhysicalMonitors", "UInt", count, "Ptr", mons)
+    ShowLevel(level = "" ? "Brightness not supported on this display" : "Brightness", level)
+}
+
+ShowLevel(label, level := "") {
+    ToolTip level = "" ? label : label ": " level "%"
+    SetTimer () => ToolTip(), -1000
+}

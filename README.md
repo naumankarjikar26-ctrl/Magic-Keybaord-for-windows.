@@ -27,7 +27,16 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 | ⌘[ ⌘] | Back / forward (browsers, Explorer) |
 | In Explorer: ⌘⌫, ⌘↑, ⌘↓ | Delete file, parent folder, open |
 
-**Media keys:** right-click the tray icon → *Mac media keys (F7-F12)* to make F7–F12 control music and volume.
+**Top-row keys** (on by default, like a Mac):
+
+| Key | Does |
+|---|---|
+| F1 / F2 | Brightness down / up |
+| F7 / F8 / F9 | Previous / play-pause / next |
+| F10 / F11 / F12 | Mute / volume down / volume up |
+
+Need real F-keys? Right-click the tray icon → uncheck *Mac top-row keys*.
+Brightness works on laptop screens, and on external monitors that support DDC/CI (usually an on/off option in the monitor's own menu).
 
 ## Notes
 
