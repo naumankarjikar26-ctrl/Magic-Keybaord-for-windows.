@@ -17,7 +17,8 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 | ⌘Q | Quit app |
 | ⌘H / ⌘M | Minimize |
 | ⌘Tab | Switch apps |
-| ⌘Space | Search (like Spotlight) |
+| ⌘Space | Open Start menu |
+| ⌘E | Open File Explorer |
 | ⌃⌘F | Full screen |
 | ⌃⌘Q | Lock screen |
 | ⌘⇧3 / ⌘⇧4 | Screenshot / snip area |
@@ -42,4 +43,4 @@ Brightness works on laptop screens, and on external monitors that support DDC/CI
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
 - ⌘L can't be remapped because Windows reserves Win+L for locking. Use Ctrl+L (or F6) for the address bar.
-- Some Windows shortcuts (like Win+E, Win+D) now behave as ⌘ shortcuts instead.
+- Some Windows shortcuts (like Win+D) now behave as ⌘ shortcuts instead.

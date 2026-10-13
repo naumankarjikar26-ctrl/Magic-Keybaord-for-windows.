@@ -58,7 +58,7 @@ ToggleMedia(name, *) {
 keys := StrSplit("abcdefghijklmnopqrstuvwxyz0123456789")
 for k in ["-", "=", "[", "]", "`;", "'", ",", ".", "/", "\"]
     keys.Push(k)
-skipPlain := Map("q", 1, "h", 1, "m", 1)           ; handled specially below
+skipPlain := Map("e", 1, "q", 1, "h", 1, "m", 1)           ; handled specially below
 skipShift := Map("z", 1, "3", 1, "4", 1, "5", 1)   ; handled specially below
 for k in keys {
     if !skipPlain.Has(k)
@@ -74,7 +74,8 @@ SendKey(mods, key, *) => Send(mods "{" key "}")
 #m::WinMinimize "A"                  ; ⌘M  minimize
 ^#q::DllCall "LockWorkStation"       ; ⌃⌘Q lock screen
 ^#f::Send "{F11}"                    ; ⌃⌘F full screen
-#Space::Send "#s"                    ; ⌘Space  search (like Spotlight)
+#Space::Send "^{Esc}"                ; ⌘Space  open Start menu
+#e::Run "explorer.exe"               ; ⌘E  open File Explorer
 #+z::Send "^y"                       ; ⌘⇧Z redo
 #+3::Send "{PrintScreen}"            ; ⌘⇧3 screenshot
 #+4::Send "#+s"                      ; ⌘⇧4 snip area
