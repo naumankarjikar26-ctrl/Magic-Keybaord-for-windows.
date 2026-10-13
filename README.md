@@ -6,7 +6,7 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 
 1. Install [AutoHotkey v2](https://www.autohotkey.com/).
 2. Download `MacKeyboard.ahk` and double-click it. A green **H** icon appears in the tray.
-3. **Start with Windows:** press `Win+R`, type `shell:startup`, and put a shortcut to `MacKeyboard.ahk` in that folder.
+3. That's it — it now starts automatically with Windows. To turn that off, right-click the tray icon → uncheck *Start with Windows*.
 
 ## Shortcuts
 

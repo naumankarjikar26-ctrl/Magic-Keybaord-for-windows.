@@ -29,6 +29,26 @@ A_TrayMenu.Add("Mac top-row keys (brightness, media, volume)", ToggleMedia)
 if MAC_MEDIA_KEYS
     A_TrayMenu.Check("Mac top-row keys (brightness, media, volume)")
 
+; ===== Start with Windows =====
+; On by default: adds a shortcut to the Startup folder. Untick it in the tray menu to turn off.
+STARTUP_LINK := A_Startup "\Mac Keyboard.lnk"
+SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
+A_TrayMenu.Add("Start with Windows", ToggleStartup)
+if RegRead(SETTINGS_KEY, "AutoStart", 1) {
+    FileCreateShortcut A_ScriptFullPath, STARTUP_LINK, A_ScriptDir  ; also fixes it if the file moved
+    A_TrayMenu.Check("Start with Windows")
+}
+
+ToggleStartup(name, *) {
+    on := !FileExist(STARTUP_LINK)
+    if on
+        FileCreateShortcut A_ScriptFullPath, STARTUP_LINK, A_ScriptDir
+    else
+        FileDelete STARTUP_LINK
+    RegWrite on, "REG_DWORD", SETTINGS_KEY, "AutoStart"
+    A_TrayMenu.ToggleCheck(name)
+}
+
 ToggleMedia(name, *) {
     global MAC_MEDIA_KEYS := !MAC_MEDIA_KEYS
     A_TrayMenu.ToggleCheck(name)
