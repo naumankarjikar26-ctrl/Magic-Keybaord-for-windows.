@@ -21,7 +21,7 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 | ⌘Tab | Switch apps |
 | ⌃← ⌃→ | Switch desktop (like Spaces) |
 | ⌃↑ | Task View (like Mission Control) |
-| ⌘Space | Open Start menu |
+| ⌘Space or ⌘\\ | Open Start menu |
 | ⌘E | Open File Explorer |
 | ⌃⌘F | Full screen |
 | ⌃⌘Q | Lock screen |

@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "10"
+VERSION := "11"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -150,7 +150,8 @@ SetStartup(on, wait := false) {
 >^q::Send "!{F4}"                    ; ⌘Q  quit app
 >^m::WinMinimize "A"                 ; ⌘M  minimize
 >^e::Run "explorer.exe"              ; ⌘E  open File Explorer
->^Space::Send "^{Esc}"               ; ⌘Space  open Start menu
+>^Space::OpenStart()                 ; ⌘Space  open Start menu
+>^\::OpenStart()                     ; ⌘\  open Start menu too
 <^>^q::DllCall "LockWorkStation"     ; ⌃⌘Q lock screen
 <^>^f::Send "{F11}"                  ; ⌃⌘F full screen
 >^+z::Send "^y"                      ; ⌘⇧Z redo
@@ -162,6 +163,13 @@ SetStartup(on, wait := false) {
 <^Left::Send "^#{Left}"              ; ⌃←  previous desktop
 <^Right::Send "^#{Right}"            ; ⌃→  next desktop
 <^Up::Send "#{Tab}"                  ; ⌃↑  Task View (like Mission Control)
+
+OpenStart(*) {
+    ToolTip "Opening Start..."           ; shows the shortcut was caught
+    SetTimer () => ToolTip(), -800
+    KeyWait "RCtrl", "T3"                ; wait for ⌘ to be let go
+    Send "{LWin}"
+}
 
 ; ⌘Tab switch apps (hold ⌘, tap Tab; add ⇧ to go back)
 global AltTabbing := false
