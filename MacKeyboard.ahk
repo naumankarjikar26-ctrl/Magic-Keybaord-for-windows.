@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "9"
+VERSION := "10"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -150,7 +150,7 @@ SetStartup(on, wait := false) {
 >^q::Send "!{F4}"                    ; ⌘Q  quit app
 >^m::WinMinimize "A"                 ; ⌘M  minimize
 >^e::Run "explorer.exe"              ; ⌘E  open File Explorer
->^Space::Send "{LWin}"               ; ⌘Space  open Start menu
+>^Space::Send "^{Esc}"               ; ⌘Space  open Start menu
 <^>^q::DllCall "LockWorkStation"     ; ⌃⌘Q lock screen
 <^>^f::Send "{F11}"                  ; ⌃⌘F full screen
 >^+z::Send "^y"                      ; ⌘⇧Z redo
