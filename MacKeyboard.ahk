@@ -75,7 +75,9 @@ GroupAdd "Explorer", "ahk_class CabinetWClass"
 GroupAdd "Explorer", "ahk_class ExploreWClass"
 
 ; ===== Tray =====
-A_IconTip := "Mac Keyboard for Windows" (A_IsAdmin ? "" : " (not admin: ⌘L off)")
+VERSION := "7"
+A_IconTip := "Mac Keyboard v" VERSION (A_IsAdmin ? " (admin)" : " (not admin: ⌘L off)")
+TrayTip "Running" (A_IsAdmin ? " as admin" : ""), "Mac Keyboard v" VERSION
 A_TrayMenu.Add()
 A_TrayMenu.Add("Mac top-row keys (brightness, media, volume)", ToggleMedia)
 if MAC_MEDIA_KEYS
