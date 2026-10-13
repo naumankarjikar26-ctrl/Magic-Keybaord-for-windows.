@@ -8,6 +8,16 @@
 
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+
+; Run as administrator: needed to free up ⌘L (see below), and lets shortcuts work in admin apps too.
+; If you say No to the prompt, everything else still works.
+if !A_IsAdmin {
+    try {
+        Run '*RunAs "' A_AhkPath '" /restart "' A_ScriptFullPath '"'
+        ExitApp
+    }
+}
+
 InstallKeybdHook
 A_MenuMaskKey := "vkE8"  ; stops a lone Win/Alt release from opening Start or menus
 
@@ -30,23 +40,45 @@ if MAC_MEDIA_KEYS
     A_TrayMenu.Check("Mac top-row keys (brightness, media, volume)")
 
 ; ===== Start with Windows =====
-; On by default: adds a shortcut to the Startup folder. Untick it in the tray menu to turn off.
-STARTUP_LINK := A_Startup "\Mac Keyboard.lnk"
+; On by default: a scheduled task starts this script (as admin, with no prompt) when you sign in.
+; Untick it in the tray menu to turn off.
+TASK_NAME := "MacKeyboard"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
+try FileDelete A_Startup "\Mac Keyboard.lnk"  ; replaced by the scheduled task
 A_TrayMenu.Add("Start with Windows", ToggleStartup)
-if RegRead(SETTINGS_KEY, "AutoStart", 1) {
-    FileCreateShortcut A_ScriptFullPath, STARTUP_LINK, A_ScriptDir  ; also fixes it if the file moved
+if RegRead(SETTINGS_KEY, "AutoStart", 1) && SetStartup(true)  ; also fixes it if the file moved
     A_TrayMenu.Check("Start with Windows")
-}
 
 ToggleStartup(name, *) {
-    on := !FileExist(STARTUP_LINK)
-    if on
-        FileCreateShortcut A_ScriptFullPath, STARTUP_LINK, A_ScriptDir
-    else
-        FileDelete STARTUP_LINK
+    on := !RegRead(SETTINGS_KEY, "AutoStart", 1)
+    if !SetStartup(on)
+        return MsgBox("Restart the script and choose Yes on the admin prompt to change this.", "Mac Keyboard")
     RegWrite on, "REG_DWORD", SETTINGS_KEY, "AutoStart"
     A_TrayMenu.ToggleCheck(name)
+}
+
+SetStartup(on) {
+    if !A_IsAdmin
+        return false
+    if !on
+        return RunWait('schtasks /Delete /F /TN "' TASK_NAME '"', , "Hide") = 0
+    ps := "
+    (
+    param($ahk, $script, $name)
+    $ErrorActionPreference = 'Stop'
+    $user = $env:USERDOMAIN + '\' + $env:USERNAME
+    $a = New-ScheduledTaskAction -Execute $ahk -Argument ([char]34 + $script + [char]34)
+    $t = New-ScheduledTaskTrigger -AtLogOn -User $user
+    $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan)
+    $p = New-ScheduledTaskPrincipal -UserId $user -RunLevel Highest -LogonType Interactive
+    Register-ScheduledTask -TaskName $name -Action $a -Trigger $t -Settings $s -Principal $p -Force | Out-Null
+    )"
+    file := A_Temp "\MacKeyboardTask.ps1"
+    try FileDelete file
+    FileAppend ps, file
+    code := RunWait('powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" "' A_AhkPath '" "' A_ScriptFullPath '" "' TASK_NAME '"', , "Hide")
+    try FileDelete file
+    return code = 0
 }
 
 ToggleMedia(name, *) {
@@ -91,7 +123,11 @@ SendKey(mods, key, *) => Send(mods "{" key "}")
 #m::WinMinimize "A"                  ; ⌘M  minimize
 ^#q::LockScreen()                    ; ⌃⌘Q lock screen
 ^#f::Send "{F11}"                    ; ⌃⌘F full screen
-#Space::Send "^{Esc}"                ; ⌘Space  open Start menu
+#Space:: {                           ; ⌘Space  open Start menu
+    KeyWait "LWin"                   ; wait until ⌘ is let go, or Windows closes Start again
+    KeyWait "RWin"
+    Send "^{Esc}"
+}
 #e::Run "explorer.exe"               ; ⌘E  open File Explorer
 #+z::Send "^y"                       ; ⌘⇧Z redo
 #+3::Send "{PrintScreen}"            ; ⌘⇧3 screenshot
