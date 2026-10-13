@@ -18,6 +18,16 @@ if !A_IsAdmin {
     }
 }
 
+; Close any other running copy of this script (e.g. an old copy in another folder)
+DetectHiddenWindows true
+SetTitleMatchMode 2
+for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
+    if hwnd != A_ScriptHwnd {
+        try PostMessage 0x111, 65307, , , hwnd  ; tray menu "Exit"
+        WinWaitClose hwnd, , 2                  ; let it finish before we change settings
+    }
+DetectHiddenWindows false
+
 InstallKeybdHook
 A_MenuMaskKey := "vkE8"  ; stops a lone Win/Alt release from opening Start or menus
 
@@ -26,6 +36,38 @@ A_MenuMaskKey := "vkE8"  ; stops a lone Win/Alt release from opening Start or me
 ; (can also be toggled from the tray icon; turn off when you need real F-keys)
 global MAC_MEDIA_KEYS := true
 
+; ===== ⌘ + key  ->  Ctrl + key =====
+keys := StrSplit("abcdefghijklmnopqrstuvwxyz0123456789")
+for k in ["-", "=", "[", "]", "`;", "'", ",", ".", "/", "\"]
+    keys.Push(k)
+skipPlain := Map("e", 1, "q", 1, "h", 1, "m", 1)   ; handled specially below
+skipShift := Map("z", 1, "3", 1, "4", 1, "5", 1)   ; handled specially below
+for k in keys {
+    if !skipPlain.Has(k)
+        Hotkey "#" k, SendKey.Bind("^", k)
+    if !skipShift.Has(k)
+        Hotkey "#+" k, SendKey.Bind("^+", k)
+}
+SendKey(mods, key, *) => Send(mods "{" key "}")
+
+; ===== Free up ⌘L =====
+; Windows locks the screen on Win+L before any script can catch it, so turn that
+; shortcut off while this script runs (⌃⌘Q still locks) and turn it back on when it exits.
+; Needs admin rights.
+LOCK_POLICY := "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"
+SetWinLLock(on) {
+    try RegWrite on ? 0 : 1, "REG_DWORD", LOCK_POLICY, "DisableLockWorkstation"
+}
+SetWinLLock(false)
+OnExit (*) => SetWinLLock(true)
+
+LockScreen(*) {
+    SetWinLLock(true)
+    DllCall "LockWorkStation"
+    Sleep 1000
+    SetWinLLock(false)
+}
+
 ; ===== App groups =====
 for exe in ["chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "vivaldi.exe", "arc.exe"]
     GroupAdd "Browsers", "ahk_exe " exe
@@ -33,11 +75,16 @@ GroupAdd "Explorer", "ahk_class CabinetWClass"
 GroupAdd "Explorer", "ahk_class ExploreWClass"
 
 ; ===== Tray =====
-A_IconTip := "Mac Keyboard for Windows"
+A_IconTip := "Mac Keyboard for Windows" (A_IsAdmin ? "" : " (not admin: ⌘L off)")
 A_TrayMenu.Add()
 A_TrayMenu.Add("Mac top-row keys (brightness, media, volume)", ToggleMedia)
 if MAC_MEDIA_KEYS
     A_TrayMenu.Check("Mac top-row keys (brightness, media, volume)")
+
+ToggleMedia(name, *) {
+    global MAC_MEDIA_KEYS := !MAC_MEDIA_KEYS
+    A_TrayMenu.ToggleCheck(name)
+}
 
 ; ===== Start with Windows =====
 ; On by default: a scheduled task starts this script (as admin, with no prompt) when you sign in.
@@ -46,20 +93,20 @@ TASK_NAME := "MacKeyboard"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 try FileDelete A_Startup "\Mac Keyboard.lnk"  ; replaced by the scheduled task
 A_TrayMenu.Add("Start with Windows", ToggleStartup)
-if RegRead(SETTINGS_KEY, "AutoStart", 1) && SetStartup(true)  ; also fixes it if the file moved
+if RegRead(SETTINGS_KEY, "AutoStart", 1) && A_IsAdmin {
     A_TrayMenu.Check("Start with Windows")
+    SetTimer () => SetStartup(true), -3000  ; in the background; also fixes it if the file moved
+}
 
 ToggleStartup(name, *) {
     on := !RegRead(SETTINGS_KEY, "AutoStart", 1)
-    if !SetStartup(on)
+    if !A_IsAdmin || !SetStartup(on, true)
         return MsgBox("Restart the script and choose Yes on the admin prompt to change this.", "Mac Keyboard")
     RegWrite on, "REG_DWORD", SETTINGS_KEY, "AutoStart"
     A_TrayMenu.ToggleCheck(name)
 }
 
-SetStartup(on) {
-    if !A_IsAdmin
-        return false
+SetStartup(on, wait := false) {
     if !on
         return RunWait('schtasks /Delete /F /TN "' TASK_NAME '"', , "Hide") = 0
     ps := "
@@ -76,46 +123,11 @@ SetStartup(on) {
     file := A_Temp "\MacKeyboardTask.ps1"
     try FileDelete file
     FileAppend ps, file
-    code := RunWait('powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" "' A_AhkPath '" "' A_ScriptFullPath '" "' TASK_NAME '"', , "Hide")
-    try FileDelete file
-    return code = 0
+    cmd := 'powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" "' A_AhkPath '" "' A_ScriptFullPath '" "' TASK_NAME '"'
+    if !wait
+        return Run(cmd, , "Hide")
+    return RunWait(cmd, , "Hide") = 0
 }
-
-ToggleMedia(name, *) {
-    global MAC_MEDIA_KEYS := !MAC_MEDIA_KEYS
-    A_TrayMenu.ToggleCheck(name)
-}
-
-; ===== Free up ⌘L =====
-; Windows locks the screen on Win+L before any script can catch it, so turn that
-; shortcut off while this script runs (⌃⌘Q still locks) and turn it back on when it exits.
-LOCK_POLICY := "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"
-SetWinLLock(on) {
-    try RegWrite on ? 0 : 1, "REG_DWORD", LOCK_POLICY, "DisableLockWorkstation"
-}
-SetWinLLock(false)
-OnExit (*) => SetWinLLock(true)
-
-LockScreen(*) {
-    SetWinLLock(true)
-    DllCall "LockWorkStation"
-    Sleep 1000
-    SetWinLLock(false)
-}
-
-; ===== ⌘ + key  ->  Ctrl + key =====
-keys := StrSplit("abcdefghijklmnopqrstuvwxyz0123456789")
-for k in ["-", "=", "[", "]", "`;", "'", ",", ".", "/", "\"]
-    keys.Push(k)
-skipPlain := Map("e", 1, "q", 1, "h", 1, "m", 1)           ; handled specially below
-skipShift := Map("z", 1, "3", 1, "4", 1, "5", 1)   ; handled specially below
-for k in keys {
-    if !skipPlain.Has(k)
-        Hotkey "#" k, SendKey.Bind("^", k)
-    if !skipShift.Has(k)
-        Hotkey "#+" k, SendKey.Bind("^+", k)
-}
-SendKey(mods, key, *) => Send(mods "{" key "}")
 
 ; ===== Mac-style app & system shortcuts =====
 #q::Send "!{F4}"                     ; ⌘Q  quit app
@@ -124,9 +136,9 @@ SendKey(mods, key, *) => Send(mods "{" key "}")
 ^#q::LockScreen()                    ; ⌃⌘Q lock screen
 ^#f::Send "{F11}"                    ; ⌃⌘F full screen
 #Space:: {                           ; ⌘Space  open Start menu
-    KeyWait "LWin"                   ; wait until ⌘ is let go, or Windows closes Start again
-    KeyWait "RWin"
-    Send "^{Esc}"
+    KeyWait "LWin", "T3"             ; wait until ⌘ is let go, or Windows closes Start again
+    KeyWait "RWin", "T3"
+    Send "{LWin}"
 }
 #e::Run "explorer.exe"               ; ⌘E  open File Explorer
 #+z::Send "^y"                       ; ⌘⇧Z redo
