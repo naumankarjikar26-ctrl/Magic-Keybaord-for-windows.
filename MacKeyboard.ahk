@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "15"
+VERSION := "16"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -184,9 +184,11 @@ LoadTouchKey() {
 
 TouchKeyPressed(thisHotkey) {
     key := SubStr(thisHotkey, 2)
+    ShowLevel("Touch ID key pressed (A)")
     if KeyWait(key, "T" TOUCH_HOLD_MS / 1000)
         DllCall "LockWorkStation"
     else {
+        ShowLevel("Touch ID key held: sleep (A)")
         SleepPC()
         KeyWait key
     }
@@ -198,6 +200,7 @@ SleepPC() {
 
 TouchHeld() {
     global TouchHeldFired := true
+    ShowLevel("Touch ID key held: sleep (C)")
     SleepPC()
 }
 
@@ -235,9 +238,12 @@ OnRawInput(wParam, lParam, *) {
     if TouchSig = ""
         return
     if hex = TouchSig {
-        if !TouchRelease
+        if !TouchRelease {
+            ShowLevel("Touch ID key pressed (B)")
             return DllCall("LockWorkStation")  ; key only reports presses: tap = lock
+        }
         if !TouchDown {
+            ShowLevel("Touch ID key pressed (C)")
             TouchDown := true, TouchHeldFired := false
             SetTimer TouchHeld, -TOUCH_HOLD_MS
         }
