@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "11"
+VERSION := "12"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -156,8 +156,10 @@ SetStartup(on, wait := false) {
 <^>^f::Send "{F11}"                  ; ⌃⌘F full screen
 >^+z::Send "^y"                      ; ⌘⇧Z redo
 >^+3::Send "{PrintScreen}"           ; ⌘⇧3 screenshot
->^+4::Send "#+s"                     ; ⌘⇧4 snip area
->^+5::Send "#+s"                     ; ⌘⇧5 snip tool
+>^+s::Screenshot("copy")             ; ⌘⇧S snip area -> clipboard only
+>^+x::Screenshot("save")             ; ⌘⇧X snip area -> clipboard + file
+>^+4::Screenshot("save")             ; ⌘⇧4 snip area -> file (like a Mac)
+>^+5::Screenshot("save")
 
 ; Desktops, like Spaces on a Mac (the real Control key)
 <^Left::Send "^#{Left}"              ; ⌃←  previous desktop
@@ -271,7 +273,116 @@ ChangeBrightness(step) {
     ShowLevel(level = "" ? "Brightness not supported on this display" : "Brightness", level)
 }
 
+; ===== Brightness pop-up (bottom of the screen, like the volume one) =====
 ShowLevel(label, level := "") {
-    ToolTip level = "" ? label : label ": " level "%"
-    SetTimer () => ToolTip(), -1000
+    global LevelOsd
+    static osd := 0
+    if !osd {
+        osd := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20")  ; E0x20 = clicks pass through
+        osd.BackColor := "202020"
+        osd.MarginX := 0, osd.MarginY := 0
+        osd.SetFont("s14 cWhite", "Segoe UI Symbol")
+        osd.Add("Text", "x18 y10 w26 h28 vIcon", "☀")
+        osd.SetFont("s11 cWhite", "Segoe UI")
+        osd.Add("Progress", "x52 y21 w170 h6 Background505050 c4CC2FF vBar Range0-100")
+        osd.Add("Text", "x232 y13 w44 h24 vPct")
+        osd.Add("Text", "x52 y13 w224 h24 vMsg Hidden")
+        try DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", osd.Hwnd, "UInt", 33, "Int*", 2, "UInt", 4)  ; round corners
+        LevelOsd := osd
+    }
+    hasLevel := level != ""
+    osd["Bar"].Visible := osd["Pct"].Visible := hasLevel
+    osd["Msg"].Visible := !hasLevel
+    if hasLevel {
+        osd["Bar"].Value := level
+        osd["Pct"].Value := level "%"
+    } else
+        osd["Msg"].Value := label
+    MonitorGetWorkArea(MonitorGetPrimary(), &left, , &right, &bottom)
+    w := 290, h := 48
+    osd.Show("NoActivate x" ((left + right - w) // 2) " y" (bottom - h - 48) " w" w " h" h)
+    SetTimer HideLevel, -1500
+}
+HideLevel() {
+    global LevelOsd
+    LevelOsd.Hide()
+}
+
+; ===== Screenshots =====
+; Uses the Windows snip tool (Win+Shift+S), then:
+;   "copy" -> image stays on the clipboard only (removes any file Windows saved)
+;   "save" -> also saved as a PNG in Pictures\Screenshots
+Screenshot(mode) {
+    global ShotMode := mode, ShotStart := A_Now
+    ShotCancel()  ; in case an earlier snip was never finished
+    Send "#+s"
+    OnClipboardChange ShotTaken
+    SetTimer ShotCancel, -60000  ; give up if nothing is snipped within a minute
+}
+
+ShotTaken(type) {
+    if type != 2  ; 2 = image
+        return
+    ShotCancel()
+    SetTimer ShotFinish, -1500  ; give Windows a moment to save its own copy first
+}
+
+ShotCancel() {
+    OnClipboardChange ShotTaken, 0
+    SetTimer ShotCancel, 0
+}
+
+ShotFinish() {
+    global ShotMode, ShotStart
+    folder := ScreenshotFolder()
+    saved := ""
+    loop files folder "\*.png"
+        if A_LoopFileTimeCreated >= ShotStart {
+            if ShotMode = "copy"
+                try FileDelete A_LoopFileFullPath
+            else
+                saved := A_LoopFileFullPath
+        }
+    if ShotMode = "copy"
+        return ShowShot("Copied to clipboard")
+    if saved = "" {
+        DirCreate folder
+        saved := folder "\Screenshot " FormatTime(, "yyyy-MM-dd HHmmss") ".png"
+        if !SaveClipboardImage(saved)
+            return ShowShot("Couldn't save the screenshot")
+    }
+    ShowShot("Saved to Pictures\Screenshots")
+}
+
+ShowShot(msg) {
+    TrayTip msg, "Screenshot"
+}
+
+ScreenshotFolder() {
+    try pics := RegRead("HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders", "My Pictures")
+    catch
+        pics := EnvGet("USERPROFILE") "\Pictures"
+    return pics "\Screenshots"
+}
+
+SaveClipboardImage(path) {
+    ok := false
+    if !DllCall("OpenClipboard", "Ptr", A_ScriptHwnd)
+        return false
+    if hBmp := DllCall("GetClipboardData", "UInt", 2, "Ptr") {  ; CF_BITMAP
+        DllCall("LoadLibrary", "Str", "gdiplus", "Ptr")
+        si := Buffer(24, 0), NumPut("UInt", 1, si)
+        token := 0, pBmp := 0
+        DllCall("gdiplus\GdiplusStartup", "Ptr*", &token, "Ptr", si, "Ptr", 0)
+        DllCall("gdiplus\GdipCreateBitmapFromHBITMAP", "Ptr", hBmp, "Ptr", 0, "Ptr*", &pBmp)
+        png := Buffer(16)
+        DllCall("ole32\CLSIDFromString", "Str", "{557CF406-1A04-11D3-9A73-0000F81EF32E}", "Ptr", png)
+        if pBmp {
+            ok := DllCall("gdiplus\GdipSaveImageToFile", "Ptr", pBmp, "Str", path, "Ptr", png, "Ptr", 0) = 0
+            DllCall("gdiplus\GdipDisposeImage", "Ptr", pBmp)
+        }
+        DllCall("gdiplus\GdiplusShutdown", "Ptr", token)
+    }
+    DllCall("CloseClipboard")
+    return ok
 }

@@ -25,7 +25,9 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 | ⌘E | Open File Explorer |
 | ⌃⌘F | Full screen |
 | ⌃⌘Q | Lock screen |
-| ⌘⇧3 / ⌘⇧4 | Screenshot / snip area |
+| ⌘⇧S | Snip an area, copy to clipboard only |
+| ⌘⇧X (or ⌘⇧4) | Snip an area, copy and save to Pictures\Screenshots |
+| ⌘⇧3 | Screenshot |
 | ⌘← ⌘→ / ⌘↑ ⌘↓ | Line start/end / document start/end (add ⇧ to select) |
 | ⌥← ⌥→ | Jump by word (add ⇧ to select) |
 | ⌘⌫ / ⌥⌫ | Delete to line start / delete word |
