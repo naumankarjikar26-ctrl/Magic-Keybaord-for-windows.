@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "12"
+VERSION := "13"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -143,6 +143,162 @@ SetStartup(on, wait := false) {
     if !wait
         return Run(cmd, , "Hide")
     return RunWait(cmd, , "Hide") = 0
+}
+
+; ===== Touch ID key: tap = lock, hold = sleep =====
+; Windows has no Touch ID driver, so the script "learns" what the key sends
+; (tray menu -> Set up Touch ID key...) and listens for it.
+TOUCH_HOLD_MS := 1000
+global TouchLearning := false, TouchSig := "", TouchRelease := true, TouchHotkey := ""
+global TouchDown := false, TouchHeldFired := false, LearnSig := "", LearnGui := 0, LearnIH := 0
+A_TrayMenu.Add("Set up Touch ID key...", LearnTouchKey)
+RegisterRawInput()
+OnMessage 0x00FF, OnRawInput  ; WM_INPUT
+LoadTouchKey()
+
+RegisterRawInput() {
+    ; consumer keys, system keys, and Apple's own key pages
+    size := 8 + A_PtrSize
+    for p in [[0x0C, 0x01], [0x01, 0x80], [0xFF00, 0x01], [0x00FF, 0x01], [0x00FF, 0x03]] {
+        rid := Buffer(size, 0)
+        NumPut "UShort", p[1], "UShort", p[2], "UInt", 0x100, "Ptr", A_ScriptHwnd, rid  ; 0x100 = also in background
+        DllCall "RegisterRawInputDevices", "Ptr", rid, "UInt", 1, "UInt", size
+    }
+}
+
+LoadTouchKey() {
+    global TouchSig, TouchRelease, TouchHotkey
+    if TouchHotkey != "" {
+        try Hotkey TouchHotkey, "Off"
+        TouchHotkey := ""
+    }
+    kind := RegRead(SETTINGS_KEY, "TouchKeyType", "")
+    value := RegRead(SETTINGS_KEY, "TouchKeyValue", "")
+    TouchRelease := RegRead(SETTINGS_KEY, "TouchKeyRelease", 1)
+    TouchSig := kind = "hid" ? value : ""
+    if kind = "key" {
+        TouchHotkey := "*" value
+        try Hotkey TouchHotkey, TouchKeyPressed, "On"
+    }
+}
+
+TouchKeyPressed(thisHotkey) {
+    key := SubStr(thisHotkey, 2)
+    if KeyWait(key, "T" TOUCH_HOLD_MS / 1000)
+        DllCall "LockWorkStation"
+    else {
+        SleepPC()
+        KeyWait key
+    }
+}
+
+SleepPC() {
+    DllCall "PowrProf\SetSuspendState", "Int", 0, "Int", 0, "Int", 0
+}
+
+TouchHeld() {
+    global TouchHeldFired := true
+    SleepPC()
+}
+
+OnRawInput(wParam, lParam, *) {
+    global TouchDown, TouchHeldFired, LearnSig
+    hdr := 8 + 2 * A_PtrSize  ; RAWINPUTHEADER
+    size := 0
+    DllCall "GetRawInputData", "Ptr", lParam, "UInt", 0x10000003, "Ptr", 0, "UInt*", &size, "UInt", hdr
+    if size <= hdr + 8
+        return
+    buf := Buffer(size)
+    DllCall "GetRawInputData", "Ptr", lParam, "UInt", 0x10000003, "Ptr", buf, "UInt*", &size, "UInt", hdr
+    if NumGet(buf, 0, "UInt") != 2  ; RIM_TYPEHID
+        return
+    n := NumGet(buf, hdr, "UInt")
+    hex := "", pressed := false
+    loop n {
+        b := NumGet(buf, hdr + 8 + A_Index - 1, "UChar")
+        hex .= Format("{:02X}", b)
+        if b && (A_Index > 1 || n = 1)  ; first byte is usually the report ID
+            pressed := true
+    }
+
+    if TouchLearning {
+        if LearnSig = "" {
+            if pressed {
+                LearnSig := hex
+                SetTimer LearnHidFinish, -3000  ; wait to see if the key also reports being let go
+            }
+        } else if hex != LearnSig
+            LearnDone("hid", LearnSig, true)
+        return
+    }
+
+    if TouchSig = ""
+        return
+    if hex = TouchSig {
+        if !TouchRelease
+            return DllCall("LockWorkStation")  ; key only reports presses: tap = lock
+        if !TouchDown {
+            TouchDown := true, TouchHeldFired := false
+            SetTimer TouchHeld, -TOUCH_HOLD_MS
+        }
+    } else if TouchDown {
+        TouchDown := false
+        SetTimer TouchHeld, 0
+        if !TouchHeldFired
+            DllCall "LockWorkStation"
+    }
+}
+
+LearnTouchKey(*) {
+    global TouchLearning, LearnSig, LearnGui, LearnIH
+    if TouchLearning
+        return
+    LearnSig := ""
+    LearnGui := Gui("+AlwaysOnTop -MinimizeBox", "Set up Touch ID key")
+    LearnGui.SetFont("s11", "Segoe UI")
+    LearnGui.Add("Text", "w340", "Press and let go of the Touch ID key (top right of the keyboard).")
+    LearnGui.Add("Button", "w90", "Cancel").OnEvent("Click", (*) => LearnDone("", ""))
+    LearnGui.OnEvent("Close", (*) => LearnDone("", ""))
+    LearnGui.Show()
+    TouchLearning := true
+    LearnIH := InputHook("T20")
+    LearnIH.KeyOpt("{All}", "E")
+    LearnIH.OnEnd := LearnKeyEnded
+    LearnIH.Start()
+}
+
+LearnKeyEnded(ih) {
+    if !TouchLearning
+        return
+    if ih.EndReason = "EndKey" && ih.EndKey != "Escape"
+        LearnDone("key", ih.EndKey)
+    else if ih.EndReason = "Timeout"
+        LearnDone("none", "")
+    else
+        LearnDone("", "")
+}
+
+LearnHidFinish() {
+    LearnDone("hid", LearnSig, false)
+}
+
+LearnDone(kind, value, release := true) {
+    global TouchLearning
+    if !TouchLearning
+        return
+    TouchLearning := false
+    SetTimer LearnHidFinish, 0
+    try LearnIH.Stop()
+    try LearnGui.Destroy()
+    if kind = ""
+        return
+    if kind = "none"
+        return MsgBox("Windows didn't get anything from the Touch ID key, so it can't be used on this PC.", "Mac Keyboard")
+    RegWrite kind, "REG_SZ", SETTINGS_KEY, "TouchKeyType"
+    RegWrite value, "REG_SZ", SETTINGS_KEY, "TouchKeyValue"
+    RegWrite release, "REG_DWORD", SETTINGS_KEY, "TouchKeyRelease"
+    LoadTouchKey()
+    MsgBox "Done! Tap the Touch ID key to lock" (release ? ", hold it for 1 second to sleep." : ".`n(This key doesn't report being held, so hold-to-sleep isn't possible.)"), "Mac Keyboard"
 }
 
 ; ===== Mac-style app & system shortcuts =====

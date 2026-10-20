@@ -45,6 +45,9 @@ Use an Apple Magic Keyboard on Windows the way you would on a Mac.
 Need real F-keys? Right-click the tray icon → uncheck *Mac top-row keys*.
 Brightness works on laptop screens, and on external monitors that support DDC/CI (usually an on/off option in the monitor's own menu).
 
+**Touch ID key:** Windows can't use the fingerprint sensor, but the key can work as a button.
+Right-click the tray icon → *Set up Touch ID key...* and press it once. Then tap = lock, hold 1 second = sleep.
+
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
