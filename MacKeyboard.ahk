@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "13"
+VERSION := "14"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -494,9 +494,9 @@ ShotFinish() {
     saved := ""
     loop files folder "\*.png"
         if A_LoopFileTimeCreated >= ShotStart {
-            if ShotMode = "copy"
+            if ShotMode = "copy" {
                 try FileDelete A_LoopFileFullPath
-            else
+            } else
                 saved := A_LoopFileFullPath
         }
     if ShotMode = "copy"
