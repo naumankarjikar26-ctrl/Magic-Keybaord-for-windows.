@@ -33,7 +33,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "16"
+VERSION := "17"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -176,6 +176,10 @@ LoadTouchKey() {
     value := RegRead(SETTINGS_KEY, "TouchKeyValue", "")
     TouchRelease := RegRead(SETTINGS_KEY, "TouchKeyRelease", 1)
     TouchSig := kind = "hid" ? value : ""
+    if kind = "key" && !IsSpecialKey(value) {  ; never let a normal key (like Shift) lock the PC
+        try RegDelete SETTINGS_KEY, "TouchKeyType"
+        kind := ""
+    }
     if kind = "key" {
         TouchHotkey := "*" value
         try Hotkey TouchHotkey, TouchKeyPressed, "On"
@@ -184,11 +188,9 @@ LoadTouchKey() {
 
 TouchKeyPressed(thisHotkey) {
     key := SubStr(thisHotkey, 2)
-    ShowLevel("Touch ID key pressed (A)")
     if KeyWait(key, "T" TOUCH_HOLD_MS / 1000)
         DllCall "LockWorkStation"
     else {
-        ShowLevel("Touch ID key held: sleep (A)")
         SleepPC()
         KeyWait key
     }
@@ -200,7 +202,6 @@ SleepPC() {
 
 TouchHeld() {
     global TouchHeldFired := true
-    ShowLevel("Touch ID key held: sleep (C)")
     SleepPC()
 }
 
@@ -238,12 +239,9 @@ OnRawInput(wParam, lParam, *) {
     if TouchSig = ""
         return
     if hex = TouchSig {
-        if !TouchRelease {
-            ShowLevel("Touch ID key pressed (B)")
+        if !TouchRelease
             return DllCall("LockWorkStation")  ; key only reports presses: tap = lock
-        }
         if !TouchDown {
-            ShowLevel("Touch ID key pressed (C)")
             TouchDown := true, TouchHeldFired := false
             SetTimer TouchHeld, -TOUCH_HOLD_MS
         }
@@ -267,16 +265,25 @@ LearnTouchKey(*) {
     LearnGui.OnEvent("Close", (*) => LearnDone("", ""))
     LearnGui.Show()
     TouchLearning := true
-    LearnIH := InputHook("T20")
+    LearnIH := InputHook("T20 I")  ; I = ignore keys the script itself sends
     LearnIH.KeyOpt("{All}", "E")
     LearnIH.OnEnd := LearnKeyEnded
     LearnIH.Start()
 }
 
+; Only keys that aren't on a normal keyboard count, so pressing Shift etc. during setup is ignored
+IsSpecialKey(key) {
+    return key ~= "i)^(vk|sc|Sleep|Launch_|Browser_|Media_|Volume_|Help$)"
+}
+
 LearnKeyEnded(ih) {
     if !TouchLearning
         return
-    if ih.EndReason = "EndKey" && ih.EndKey != "Escape"
+    if ih.EndReason = "EndKey" && ih.EndKey = "Escape"
+        return LearnDone("", "")
+    if ih.EndReason = "EndKey" && !IsSpecialKey(ih.EndKey)
+        return ih.Start()  ; a normal key: ignore it and keep listening
+    if ih.EndReason = "EndKey"
         LearnDone("key", ih.EndKey)
     else if ih.EndReason = "Timeout"
         LearnDone("none", "")
