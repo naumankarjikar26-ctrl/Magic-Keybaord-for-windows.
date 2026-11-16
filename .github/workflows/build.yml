@@ -12,8 +12,20 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    # The repo name ends in "." which Windows can't use as a folder name,
+    # so work in the temp folder instead of the normal checkout folder.
+    defaults:
+      run:
+        working-directory: ${{ runner.temp }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Get the code
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$env:GH_TOKEN"))
+          git -c "http.extraheader=AUTHORIZATION: basic $auth" clone --depth 1 --branch "$env:GITHUB_REF_NAME" "https://github.com/$env:GITHUB_REPOSITORY.git" src
+          Copy-Item src\MacKeyboard.ahk .
 
       - name: Download AutoHotkey v2 and Ahk2Exe
         shell: pwsh
@@ -45,10 +57,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: MacKeyboard
-          path: dist/MacKeyboard.exe
+          path: ${{ runner.temp }}/dist/MacKeyboard.exe
 
       - name: Publish release (on v* tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/MacKeyboard.exe
+          files: ${{ runner.temp }}/dist/MacKeyboard.exe
