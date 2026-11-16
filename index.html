@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mac Keyboard for Windows</title>
+<meta name="description" content="Use an Apple Magic Keyboard on Windows the way you would on a Mac. Free, one small .exe.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌘</text></svg>">
+<style>
+  :root {
+    --bg: #fbfbfd; --fg: #1d1d1f; --muted: #6e6e73; --card: #ffffff;
+    --line: #e5e5ea; --accent: #0a66d8; --accent-fg: #ffffff; --key: #f2f2f5; --key-edge: #d2d2d7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0d0f; --fg: #f5f5f7; --muted: #a1a1a6; --card: #17171a;
+      --line: #2c2c30; --accent: #3a8bff; --accent-fg: #ffffff; --key: #222226; --key-edge: #3a3a3f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.55 -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+  header.hero { text-align: center; padding: 88px 0 56px; }
+  .keys { display: flex; justify-content: center; gap: 10px; margin-bottom: 28px; }
+  .k {
+    min-width: 56px; height: 56px; padding: 0 14px; border-radius: 12px;
+    display: grid; place-items: center; font-size: 24px;
+    background: var(--key); border: 1px solid var(--key-edge);
+    box-shadow: 0 3px 0 var(--key-edge);
+  }
+  h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.08; margin: 0 0 16px; letter-spacing: -0.02em; }
+  .lead { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); max-width: 620px; margin: 0 auto 36px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent); color: var(--accent-fg); text-decoration: none;
+    font-weight: 600; font-size: 18px; padding: 16px 30px; border-radius: 999px;
+    transition: transform .15s, filter .15s;
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn svg { width: 20px; height: 20px; }
+  .small { color: var(--muted); font-size: 14px; margin-top: 14px; }
+  .small a { color: inherit; }
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 28px; margin: 0 0 20px; letter-spacing: -0.01em; }
+  ol.steps { padding-left: 22px; margin: 0; }
+  ol.steps li { margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px;
+  }
+  .row kbd {
+    font: 600 15px/1 inherit; white-space: nowrap;
+    background: var(--key); border: 1px solid var(--key-edge); border-radius: 7px; padding: 6px 9px;
+  }
+  .row span { color: var(--muted); text-align: right; font-size: 15px; }
+  .note { color: var(--muted); font-size: 15px; margin-top: 18px; }
+  footer { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0 56px; border-top: 1px solid var(--line); }
+  footer a { color: inherit; }
+  @media (max-width: 480px) { header.hero { padding: 56px 0 40px; } .k { min-width: 48px; height: 48px; font-size: 20px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="keys" aria-hidden="true"><div class="k">⌘</div><div class="k">⌥</div><div class="k">⌃</div><div class="k">⇧</div></div>
+    <h1>Mac Keyboard for Windows</h1>
+    <p class="lead">Use an Apple Magic Keyboard on Windows the way you would on a Mac. ⌘C, ⌘V, ⌘Tab, ⌥ word jumps, brightness and media keys — they just work.</p>
+    <a class="btn" href="https://github.com/naumankarjikar26-ctrl/Magic-Keybaord-for-windows./releases/latest/download/MacKeyboard.exe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+      Download for Windows
+    </a>
+    <p class="small">Free · One small .exe · Windows 10 and 11 · <a href="https://github.com/naumankarjikar26-ctrl/Magic-Keybaord-for-windows./releases">All versions</a></p>
+  </header>
+
+  <section>
+    <h2>Setup</h2>
+    <ol class="steps">
+      <li>Download <b>MacKeyboard.exe</b> and move it somewhere permanent, like Documents.</li>
+      <li>Double-click it and choose <b>Yes</b> on the admin prompt. An icon appears in the tray.</li>
+      <li><b>Restart your PC once</b> when it asks — that's when ⌘ starts acting like a Mac's.</li>
+      <li>Done. It starts with Windows from now on (turn that off from the tray icon).</li>
+    </ol>
+    <p class="note">Windows may show a “Windows protected your PC” warning because the app isn't signed. Click <b>More info → Run anyway</b>.</p>
+  </section>
+
+  <section>
+    <h2>Shortcuts</h2>
+    <div class="grid">
+      <div class="row"><kbd>⌘ C / V / Z</kbd><span>Copy, paste, undo…</span></div>
+      <div class="row"><kbd>⌘⇧Z</kbd><span>Redo</span></div>
+      <div class="row"><kbd>⌘Q</kbd><span>Quit app</span></div>
+      <div class="row"><kbd>⌘M</kbd><span>Minimize</span></div>
+      <div class="row"><kbd>⌘Tab</kbd><span>Switch apps</span></div>
+      <div class="row"><kbd>⌃← ⌃→</kbd><span>Switch desktop</span></div>
+      <div class="row"><kbd>⌃↑</kbd><span>Task View</span></div>
+      <div class="row"><kbd>⌘Space</kbd><span>Start menu</span></div>
+      <div class="row"><kbd>⌘E</kbd><span>File Explorer</span></div>
+      <div class="row"><kbd>⌃⌘F</kbd><span>Full screen</span></div>
+      <div class="row"><kbd>⌃⌘Q</kbd><span>Lock screen</span></div>
+      <div class="row"><kbd>⌘⇧3</kbd><span>Screenshot</span></div>
+      <div class="row"><kbd>⌘⇧4</kbd><span>Snip and save</span></div>
+      <div class="row"><kbd>⌘⇧S</kbd><span>Snip to clipboard</span></div>
+      <div class="row"><kbd>⌘← ⌘→</kbd><span>Line start / end</span></div>
+      <div class="row"><kbd>⌥← ⌥→</kbd><span>Jump by word</span></div>
+      <div class="row"><kbd>⌘⌫</kbd><span>Delete to line start</span></div>
+      <div class="row"><kbd>⌘[ ⌘]</kbd><span>Back / forward</span></div>
+      <div class="row"><kbd>F1 F2</kbd><span>Brightness</span></div>
+      <div class="row"><kbd>F7 F8 F9</kbd><span>Media</span></div>
+      <div class="row"><kbd>F10 F11 F12</kbd><span>Volume</span></div>
+      <div class="row"><kbd>Touch ID key</kbd><span>Tap lock, hold sleep</span></div>
+    </div>
+    <p class="note">Need real F-keys, or want to pause everything? Right-click the tray icon.</p>
+  </section>
+
+  <footer>
+    Not affiliated with Apple. · <a href="https://github.com/naumankarjikar26-ctrl/Magic-Keybaord-for-windows.">Source on GitHub</a>
+  </footer>
+</div>
+</body>
+</html>
