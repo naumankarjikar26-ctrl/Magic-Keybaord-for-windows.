@@ -57,6 +57,7 @@ All Mac shortcuts turn off and ⌘ works as the Windows key again — no restart
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
-- ⌘ is turned into Ctrl by Windows itself (a keyboard "Scancode Map"), so even ⌘L works. This stays on even if the script isn't running.
-- The Windows key is gone from the keyboard: use ⌘Space for Start. To get it back: tray icon → uncheck *⌘ works as Ctrl*, then restart.
+- Windows is told to treat ⌘ as a spare key (a keyboard "Scancode Map"), and the app turns it into Ctrl — that's why even ⌘L works.
+  While the app is closed, ⌘ (and a regular keyboard's Windows key) does nothing. Use Windows mode instead of quitting.
+- In Mac mode, use ⌘Space for Start. To remove the ⌘ setup completely: tray icon → uncheck *⌘ works as Ctrl*, then restart.
 - This applies to every keyboard on the PC, including a laptop's built-in one.

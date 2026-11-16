@@ -2,13 +2,16 @@
 ; Makes an Apple Magic Keyboard behave like it does on a Mac.
 ; Requires AutoHotkey v2: https://www.autohotkey.com
 ;
-;   Command (⌘)  -> Ctrl, done by Windows itself (so ⌘C, ⌘V, ⌘L, ... just work)
+;   Command (⌘)  -> Ctrl (so ⌘C, ⌘V, ⌘L, ... just work)
 ;   Option  (⌥)  -> word-by-word text navigation
 ;   Control (⌃)  -> unchanged
 ;
-; How: a Windows "Scancode Map" turns both ⌘ keys into the RIGHT Ctrl key (needs one restart).
-; The Magic Keyboard has no right Ctrl, so in this script >^ (right Ctrl) always means ⌘,
-; and the real Control key stays separate (⌃Tab still switches browser tabs, like on a Mac).
+; How: a Windows "Scancode Map" turns both ⌘ keys into a spare key, F24 (needs one restart),
+; so Windows never sees them as the Windows key (that's what lets ⌘L work).
+; This script then turns F24 into the RIGHT Ctrl key in Mac mode, or back into the Windows key
+; in Windows mode. So in this script >^ (right Ctrl) always means ⌘, the real Control keys stay
+; separate (⌃Tab still switches browser tabs, like on a Mac), and a regular keyboard's own
+; right Ctrl keeps working as Ctrl.
 
 #Requires AutoHotkey v2.0
 #SingleInstance Force
@@ -40,7 +43,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "18"
+VERSION := "19"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -50,8 +53,9 @@ global MAC_MEDIA_KEYS := true
 
 ; ===== ⌘ -> Ctrl (Scancode Map) =====
 KEYMAP_KEY := "HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layout"
-; header, 2 mappings + terminator, LWin(E05B)->RCtrl(E01D), RWin(E05C)->RCtrl(E01D), end
-CMD_MAP := "0000000000000000030000001DE05BE01DE05CE000000000"
+; header, 2 mappings + terminator, LWin(E05B)->F24(0076), RWin(E05C)->F24(0076), end
+; (older versions mapped to right Ctrl; that gets replaced automatically, with one restart)
+CMD_MAP := "00000000000000000300000076005BE076005CE000000000"
 
 CmdMapInstalled() {
     try return RegRead(KEYMAP_KEY, "Scancode Map") = CMD_MAP
@@ -76,6 +80,7 @@ try RegDelete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System", 
 if RegRead(SETTINGS_KEY, "CmdAsCtrl", 1) && !CmdMapInstalled() {
     if SetCmdMap(true)
         MsgBox "Almost done! Restart your PC once so ⌘ starts working like on a Mac.", "Mac Keyboard"
+    ; (until then, an older ⌘ setup may still be active: it works the same in Mac mode)
     else
         MsgBox "Couldn't set up ⌘. Start the script again and choose Yes on the admin prompt.", "Mac Keyboard"
 }
@@ -135,11 +140,16 @@ SetKeyboardMode(win, quiet := false) {
         TrayTip WindowsMode ? "Regular Windows keyboard: Mac shortcuts are off." : "Magic Keyboard: Mac shortcuts are on.", "Mac Keyboard"
 }
 
-; In Windows mode, ⌘ (which Windows sees as right Ctrl) is the Windows key again
+; ⌘ arrives as F24 (see the top of the file): Ctrl in Mac mode, the Windows key in Windows mode.
+; Input level 1 lets the shortcuts below see the Ctrl this sends.
 #SuspendExempt
-#HotIf WindowsMode && CmdMapInstalled()
-RCtrl::LWin
+#InputLevel 1
+#HotIf !WindowsMode
+F24::RCtrl
+#HotIf WindowsMode
+F24::LWin
 #HotIf
+#InputLevel 0
 #SuspendExempt false
 
 ; ===== Start with Windows =====
@@ -381,7 +391,7 @@ LearnDone(kind, value, release := true) {
 OpenStart(*) {
     ToolTip "Opening Start..."           ; shows the shortcut was caught
     SetTimer () => ToolTip(), -800
-    KeyWait "RCtrl", "T3"                ; wait for ⌘ to be let go
+    KeyWait "RCtrl", "L T3"              ; wait for ⌘ to be let go
     Send "{LWin}"
 }
 
