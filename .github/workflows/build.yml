@@ -1,0 +1,54 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download AutoHotkey v2 and Ahk2Exe
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $h = @{ Authorization = "Bearer $env:GH_TOKEN" }
+          foreach ($repo in 'AutoHotkey/AutoHotkey', 'AutoHotkey/Ahk2Exe') {
+            $rel = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers $h
+            $zip = $rel.assets | Where-Object name -like '*.zip' | Select-Object -First 1
+            $name = $repo.Split('/')[1]
+            Invoke-WebRequest $zip.browser_download_url -OutFile "$name.zip"
+            Expand-Archive "$name.zip" -DestinationPath "tools\$name"
+          }
+          Get-ChildItem tools -Recurse -Filter *.exe | Select-Object FullName
+
+      - name: Compile MacKeyboard.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ahk2exe = (Get-ChildItem tools\Ahk2Exe -Recurse -Filter Ahk2Exe.exe | Select-Object -First 1).FullName
+          $base = (Get-ChildItem tools\AutoHotkey -Recurse -Filter AutoHotkey64.exe | Select-Object -First 1).FullName
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $p = Start-Process $ahk2exe -ArgumentList @('/in', 'MacKeyboard.ahk', '/out', 'dist\MacKeyboard.exe', '/base', "`"$base`"", '/silent', 'verbose') -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0 -or -not (Test-Path dist\MacKeyboard.exe)) { throw "Ahk2Exe failed ($($p.ExitCode))" }
+          Get-Item dist\MacKeyboard.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MacKeyboard
+          path: dist/MacKeyboard.exe
+
+      - name: Publish release (on v* tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MacKeyboard.exe

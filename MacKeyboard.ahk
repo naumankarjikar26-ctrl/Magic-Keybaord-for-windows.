@@ -12,12 +12,19 @@
 
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+;@Ahk2Exe-SetName Mac Keyboard
+;@Ahk2Exe-SetDescription Mac Keyboard for Windows
+;@Ahk2Exe-SetProductName Mac Keyboard for Windows
+;@Ahk2Exe-ExeName MacKeyboard
 
 ; Run as administrator: needed to set up ⌘ and to start with Windows,
 ; and lets shortcuts work in admin apps too.
 if !A_IsAdmin {
     try {
-        Run '*RunAs "' A_AhkPath '" /restart "' A_ScriptFullPath '"'
+        if A_IsCompiled
+            Run '*RunAs "' A_ScriptFullPath '" /restart'
+        else
+            Run '*RunAs "' A_AhkPath '" /restart "' A_ScriptFullPath '"'
         ExitApp
     }
 }
@@ -127,10 +134,11 @@ SetStartup(on, wait := false) {
         return RunWait('schtasks /Delete /F /TN "' TASK_NAME '"', , "Hide") = 0
     ps := "
     (
-    param($ahk, $script, $name)
+    param($ahk, $script = '', $name)
     $ErrorActionPreference = 'Stop'
     $user = $env:USERDOMAIN + '\' + $env:USERNAME
-    $a = New-ScheduledTaskAction -Execute $ahk -Argument ([char]34 + $script + [char]34)
+    if ($script) { $a = New-ScheduledTaskAction -Execute $ahk -Argument ([char]34 + $script + [char]34) }
+    else { $a = New-ScheduledTaskAction -Execute $ahk }
     $t = New-ScheduledTaskTrigger -AtLogOn -User $user
     $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan)
     $p = New-ScheduledTaskPrincipal -UserId $user -RunLevel Highest -LogonType Interactive
@@ -139,7 +147,10 @@ SetStartup(on, wait := false) {
     file := A_Temp "\MacKeyboardTask.ps1"
     try FileDelete file
     FileAppend ps, file
-    cmd := 'powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" "' A_AhkPath '" "' A_ScriptFullPath '" "' TASK_NAME '"'
+    ; compiled .exe: run it directly; plain script: run AutoHotkey with the script
+    exe := A_IsCompiled ? A_ScriptFullPath : A_AhkPath
+    script := A_IsCompiled ? "" : ' -script "' A_ScriptFullPath '"'
+    cmd := 'powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" -name "' TASK_NAME '" -ahk "' exe '"' script
     if !wait
         return Run(cmd, , "Hide")
     return RunWait(cmd, , "Hide") = 0
