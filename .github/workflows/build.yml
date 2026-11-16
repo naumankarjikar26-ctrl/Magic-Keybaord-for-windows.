@@ -14,12 +14,10 @@ jobs:
     runs-on: windows-latest
     # The repo name ends in "." which Windows can't use as a folder name,
     # so work in the temp folder instead of the normal checkout folder.
-    defaults:
-      run:
-        working-directory: ${{ runner.temp }}
     steps:
       - name: Get the code
         shell: pwsh
+        working-directory: ${{ runner.temp }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -29,6 +27,7 @@ jobs:
 
       - name: Download AutoHotkey v2 and Ahk2Exe
         shell: pwsh
+        working-directory: ${{ runner.temp }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -45,6 +44,7 @@ jobs:
 
       - name: Compile MacKeyboard.exe
         shell: pwsh
+        working-directory: ${{ runner.temp }}
         run: |
           $ErrorActionPreference = 'Stop'
           $ahk2exe = (Get-ChildItem tools\Ahk2Exe -Recurse -Filter Ahk2Exe.exe | Select-Object -First 1).FullName
