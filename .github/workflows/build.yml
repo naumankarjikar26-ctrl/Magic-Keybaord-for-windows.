@@ -42,6 +42,14 @@ jobs:
           }
           Get-ChildItem tools -Recurse -Filter *.exe | Select-Object FullName
 
+      - name: Check the script for errors
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+        run: |
+          $ahk = (Get-ChildItem tools\AutoHotkey -Recurse -Filter AutoHotkey64.exe | Select-Object -First 1).FullName
+          $p = Start-Process $ahk -ArgumentList @('/ErrorStdOut', '/validate', 'MacKeyboard.ahk') -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "Script has errors (exit $($p.ExitCode))" }
+
       - name: Compile MacKeyboard.exe
         shell: pwsh
         working-directory: ${{ runner.temp }}

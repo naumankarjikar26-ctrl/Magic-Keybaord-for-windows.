@@ -40,7 +40,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "17"
+VERSION := "18"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -109,6 +109,38 @@ ToggleCmdMap(name, *) {
     A_TrayMenu.ToggleCheck(name)
     MsgBox "Restart your PC for this to take effect." (on ? "" : "`n`n⌘ will be the Windows key again."), "Mac Keyboard"
 }
+
+; ===== Keyboard mode: Magic Keyboard or regular Windows keyboard =====
+; Windows mode turns off every Mac shortcut, and the ⌘ key works as the Windows key again
+; (no restart needed). Switch from the tray menu.
+MODE_MAC := "Keyboard: Magic Keyboard (Mac shortcuts)"
+MODE_WIN := "Keyboard: Regular Windows keyboard"
+global WindowsMode := false
+A_TrayMenu.Add()
+A_TrayMenu.Add(MODE_MAC, (*) => SetKeyboardMode(false))
+A_TrayMenu.Add(MODE_WIN, (*) => SetKeyboardMode(true))
+SetKeyboardMode(RegRead(SETTINGS_KEY, "WindowsMode", 0), true)
+
+SetKeyboardMode(win, quiet := false) {
+    global WindowsMode := !!win
+    Suspend WindowsMode                     ; pauses all Mac hotkeys (except the ones below)
+    try RegWrite WindowsMode, "REG_DWORD", SETTINGS_KEY, "WindowsMode"
+    if WindowsMode {
+        A_TrayMenu.Uncheck(MODE_MAC), A_TrayMenu.Check(MODE_WIN)
+    } else {
+        A_TrayMenu.Check(MODE_MAC), A_TrayMenu.Uncheck(MODE_WIN)
+    }
+    A_IconTip := "Mac Keyboard v" VERSION " - " (WindowsMode ? "Windows mode" : "Mac mode")
+    if !quiet
+        TrayTip WindowsMode ? "Regular Windows keyboard: Mac shortcuts are off." : "Magic Keyboard: Mac shortcuts are on.", "Mac Keyboard"
+}
+
+; In Windows mode, ⌘ (which Windows sees as right Ctrl) is the Windows key again
+#SuspendExempt
+#HotIf WindowsMode && CmdMapInstalled()
+RCtrl::LWin
+#HotIf
+#SuspendExempt false
 
 ; ===== Start with Windows =====
 ; On by default: a scheduled task starts this script (as admin, with no prompt) when you sign in.

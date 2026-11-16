@@ -49,6 +49,11 @@ Brightness works on laptop screens, and on external monitors that support DDC/CI
 **Touch ID key:** Windows can't use the fingerprint sensor, but the key can work as a button.
 Right-click the tray icon → *Set up Touch ID key...* and press it once. Then tap = lock, hold 1 second = sleep.
 
+## Magic Keyboard or regular keyboard
+
+Using a normal Windows keyboard for a while? Right-click the tray icon → *Keyboard: Regular Windows keyboard*.
+All Mac shortcuts turn off and ⌘ works as the Windows key again — no restart. Switch back with *Keyboard: Magic Keyboard*.
+
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
