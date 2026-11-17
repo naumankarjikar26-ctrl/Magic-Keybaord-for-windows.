@@ -43,7 +43,7 @@ for hwnd in WinGetList("MacKeyboard ahk_class AutoHotkey")
 DetectHiddenWindows false
 
 InstallKeybdHook
-VERSION := "19"
+VERSION := "20"
 SETTINGS_KEY := "HKCU\Software\MacKeyboardForWindows"
 
 ; ===== Settings =====
@@ -196,6 +196,92 @@ SetStartup(on, wait := false) {
     if !wait
         return Run(cmd, , "Hide")
     return RunWait(cmd, , "Hide") = 0
+}
+
+; ===== Built-in keyboard on/off =====
+; For laptops: turn off the built-in keyboard so only the Magic Keyboard types
+; (handy when the Magic Keyboard sits on top of the laptop's keys).
+; "Built-in" = a keyboard that isn't USB, Bluetooth or virtual. Turn it back on from the same menu.
+BUILTIN_KB_ITEM := "Turn off built-in keyboard"
+A_TrayMenu.Add(BUILTIN_KB_ITEM, ToggleBuiltInKeyboard)
+if RegRead(SETTINGS_KEY, "BuiltInKbOff", 0)
+    A_TrayMenu.Check(BUILTIN_KB_ITEM)
+
+ToggleBuiltInKeyboard(name, *) {
+    off := !RegRead(SETTINGS_KEY, "BuiltInKbOff", 0)
+    if !A_IsAdmin
+        return MsgBox("Start the app again and choose Yes on the admin prompt to change this.", "Mac Keyboard")
+    if off && MsgBox("Turn off this PC's built-in keyboard?`n`nOnly other keyboards (like the Magic Keyboard) will type. "
+        . "Turn it back on any time from this menu.", "Mac Keyboard", "OKCancel Icon?") = "Cancel"
+        return
+    code := BuiltInKeyboard(off ? "off" : "on")
+    if code = 13 {
+        if MsgBox("No other keyboard is connected right now, so you'd have no keyboard.`n`nTurn off the built-in keyboard anyway?",
+            "Mac Keyboard", "YesNo Icon! Default2") = "No"
+            return
+        code := BuiltInKeyboard("force")
+    }
+    if code = 10
+        return MsgBox("No built-in keyboard was found on this PC.", "Mac Keyboard")
+    if code != 0 && code != 12
+        return MsgBox("Windows wouldn't let the built-in keyboard be turned " (off ? "off" : "on") ".`n`n"
+            . "You can also do it in Device Manager > Keyboards.", "Mac Keyboard", "Icon!")
+    RegWrite off, "REG_DWORD", SETTINGS_KEY, "BuiltInKbOff"
+    if off
+        A_TrayMenu.Check(name)
+    else
+        A_TrayMenu.Uncheck(name)
+    if code = 12
+        MsgBox "Restart your PC to finish turning the built-in keyboard " (off ? "off" : "on") ".", "Mac Keyboard"
+    else
+        TrayTip "Built-in keyboard is " (off ? "off" : "on") ".", "Mac Keyboard"
+}
+
+; Exit codes: 0 done, 10 none found, 11 failed, 12 restart needed, 13 no other keyboard (only for "off")
+BuiltInKeyboard(action) {
+    ps := "
+    (
+    param([string]$action)
+    function IsBuiltIn($id) {
+        if ($id -match '^(ROOT|SWD)\\') { return $false }
+        $cur = $id; $acpi = $false
+        for ($i = 0; $i -lt 10 -and $cur; $i++) {
+            if ($cur -match '^USB' -or $cur -match 'BTH') { return $false }
+            if ($cur -like 'ACPI\*') { $acpi = $true }
+            $cur = (Get-PnpDeviceProperty -InstanceId $cur -KeyName 'DEVPKEY_Device_Parent' -ErrorAction SilentlyContinue).Data
+        }
+        return $acpi
+    }
+    $all = @(Get-PnpDevice -Class Keyboard -PresentOnly -ErrorAction SilentlyContinue)
+    $builtin = @($all | Where-Object { IsBuiltIn $_.InstanceId })
+    if ($builtin.Count -eq 0) { exit 10 }
+    if ($action -eq 'off') {
+        $others = @($all | Where-Object { $_.Status -eq 'OK' -and $_.InstanceId -notmatch '^(ROOT|SWD)\\' -and -not (IsBuiltIn $_.InstanceId) })
+        if ($others.Count -eq 0) { exit 13 }
+    }
+    $on = $action -eq 'on'
+    $restart = $false; $failed = $false
+    foreach ($k in $builtin) {
+        $verb = if ($on) { '/enable-device' } else { '/disable-device' }
+        $out = & pnputil $verb $k.InstanceId 2>&1 | Out-String
+        if ($LASTEXITCODE -eq 3010 -or $out -match 'reboot|restart') { $restart = $true; continue }
+        if ($LASTEXITCODE -eq 0) { continue }
+        try {
+            if ($on) { Enable-PnpDevice -InstanceId $k.InstanceId -Confirm:$false -ErrorAction Stop }
+            else { Disable-PnpDevice -InstanceId $k.InstanceId -Confirm:$false -ErrorAction Stop }
+        } catch { $failed = $true }
+    }
+    if ($failed) { exit 11 }
+    if ($restart) { exit 12 }
+    exit 0
+    )"
+    file := A_Temp "\MacKeyboardBuiltIn.ps1"
+    try FileDelete file
+    FileAppend ps, file
+    ToolTip "Working..."
+    code := RunWait('powershell -NoProfile -ExecutionPolicy Bypass -File "' file '" ' action, , "Hide")
+    ToolTip
+    return code
 }
 
 ; ===== Touch ID key: tap = lock, hold = sleep =====

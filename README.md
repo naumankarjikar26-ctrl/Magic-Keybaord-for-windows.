@@ -54,6 +54,11 @@ Right-click the tray icon → *Set up Touch ID key...* and press it once. Then t
 Using a normal Windows keyboard for a while? Right-click the tray icon → *Keyboard: Regular Windows keyboard*.
 All Mac shortcuts turn off and ⌘ works as the Windows key again — no restart. Switch back with *Keyboard: Magic Keyboard*.
 
+## Turn off a laptop's built-in keyboard
+
+Magic Keyboard sitting on top of your laptop? Right-click the tray icon → *Turn off built-in keyboard*.
+Click it again to turn it back on. Some PCs need a restart for it to take effect.
+
 ## Notes
 
 - Pause everything any time: tray icon → *Suspend Hotkeys*.
